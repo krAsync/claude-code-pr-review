@@ -2,8 +2,6 @@
 # Svarog PR Reviewer — runs via cron every 5 minutes (7am-2am Prague time)
 
 ORG="Svarog-tech"
-DISCORD_CHANNEL="1490391080225472584"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REVIEW_LOG="/tmp/svarog-pr-reviews.log"
 REVIEWED_FILE="/tmp/svarog-pr-reviewed.txt"
 
@@ -167,24 +165,6 @@ $DIFF"
 
         # Mark as reviewed
         echo "$REVIEW_KEY" >> "$REVIEWED_FILE"
-
-        # Send Discord notification
-        SHORT_REVIEW=$(echo "$REVIEW" | head -20)
-        DISCORD_OUTPUT=$(python3 "$SCRIPT_DIR/krysa_pr.py" \
-            --channel "$DISCORD_CHANNEL" \
-            --title "PR Review: ${REPO##*/}#$PR_NUM — $PR_TITLE" \
-            --message "**Repo:** $REPO
-**Author:** $PR_AUTHOR
-**Verdict:** $VERDICT
-
-$SHORT_REVIEW" 2>&1)
-        DISCORD_EXIT=$?
-
-        if [ $DISCORD_EXIT -ne 0 ]; then
-            log "ERROR: Discord notification failed for $REPO#$PR_NUM (exit $DISCORD_EXIT): $DISCORD_OUTPUT"
-        else
-            log "Sent Discord notification for $REPO#$PR_NUM"
-        fi
 
         log "Done reviewing $REPO#$PR_NUM ($VERDICT)"
 
