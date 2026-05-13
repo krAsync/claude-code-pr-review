@@ -5,6 +5,38 @@ ORG="Svarog-tech"
 REVIEW_LOG="/tmp/svarog-pr-reviews.log"
 REVIEWED_FILE="/tmp/svarog-pr-reviewed.txt"
 
+# Load config (APPROVAL_BIAS, etc). Falls back to defaults if missing.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APPROVAL_BIAS=4
+if [ -f "$SCRIPT_DIR/config.sh" ]; then
+    # shellcheck source=/dev/null
+    . "$SCRIPT_DIR/config.sh"
+fi
+
+case "$APPROVAL_BIAS" in
+    1) BIAS_INSTRUCTIONS="- APPROVE — no real bugs, security issues, or notable code-quality problems.
+- REQUEST_CHANGES — any real bug, security issue, or notable code-quality problem.
+
+Be a strict reviewer. Hold the bar high on correctness and quality." ;;
+    2) BIAS_INSTRUCTIONS="- APPROVE — no bugs or security issues; minor style/quality nits are fine.
+- REQUEST_CHANGES — bugs, security issues, or clearly broken logic.
+
+Be cautious. Tolerate style nits but call out real defects." ;;
+    3) BIAS_INSTRUCTIONS="- APPROVE — no clear bugs or security issues.
+- REQUEST_CHANGES — clear bugs or security issues.
+
+Be balanced and pragmatic." ;;
+    4) BIAS_INSTRUCTIONS="- APPROVE — no critical issues found, safe to merge.
+- REQUEST_CHANGES — only if there are CRITICAL security vulnerabilities (e.g. SQL injection, hardcoded secrets in code, authentication bypass). Minor suggestions, style nits, missing docs, or nice-to-haves are NOT reasons to request changes.
+
+Default to APPROVE unless there is a genuine critical security flaw. Be pragmatic, not pedantic." ;;
+    5) BIAS_INSTRUCTIONS="- APPROVE — anything that is not outright malicious or destructive.
+- REQUEST_CHANGES — only for clearly malicious code (backdoors, data exfiltration, destructive commands) or accidentally committed secrets.
+
+Rubberstamp by default. Trust the author." ;;
+    *) echo "$(date) — ERROR: invalid APPROVAL_BIAS=$APPROVAL_BIAS (must be 1-5)" >> "$REVIEW_LOG"; exit 1 ;;
+esac
+
 log() {
     echo "$(date) — $1" >> "$REVIEW_LOG"
 }
@@ -125,10 +157,7 @@ $PATCH
         PROMPT="You are a senior code reviewer. Review this PR diff for security vulnerabilities, bugs, and performance issues. Be specific with file names and line numbers.
 
 At the end give exactly one of these verdicts:
-- APPROVE — no critical issues found, safe to merge
-- REQUEST_CHANGES — only if there are CRITICAL security vulnerabilities (e.g. SQL injection, hardcoded secrets in code, authentication bypass). Minor suggestions, style nits, missing docs, or nice-to-haves are NOT reasons to request changes.
-
-Default to APPROVE unless there is a genuine critical security flaw. Be pragmatic, not pedantic.
+$BIAS_INSTRUCTIONS
 
 PR: $REPO#$PR_NUM — $PR_TITLE by $PR_AUTHOR
 
