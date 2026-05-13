@@ -4,14 +4,15 @@ Automated PR review using Claude Code, driven by a Linux cron job.
 
 ## Why
 
-- **Saves tokens.** Each PR's latest commit SHA is recorded after review. On every cron tick the script lists open PRs and skips any whose latest commit it has already reviewed, so Claude is only invoked when there is actually something new to look at.
+- **Run PR reviews on your Claude subscription, not the API.** Existing PR-review bots (including Anthropic's own GitHub Action) bill against the Anthropic API. This script shells out to the local `claude` CLI, so reviews run under whatever plan that CLI is logged in to (Pro / Max / Team) — no per-token API spend.
 - **Uses Linux cron, not Claude's scheduler.** Claude Code's built-in scheduling is limited; a regular `crontab` entry gives precise control over frequency, run windows, and logging.
 - **Comment-only.** The bot posts a review comment with a verdict. It never approves, requests changes formally, or merges — humans still drive the PR.
+- **Doesn't re-review the same commit.** Each PR's latest commit SHA is recorded after review and skipped next tick, so the bot only wakes up Claude when there's something new to look at.
 
 ## Requirements
 
 - `gh` CLI, authenticated against the org you want to review (`gh auth login`).
-- `claude` CLI on `PATH` (Claude Code), able to run non-interactively (`claude -p -`).
+- `claude` CLI on `PATH` (Claude Code), logged in to a Claude subscription and able to run non-interactively (`claude -p -`). No `ANTHROPIC_API_KEY` needed.
 - `bash`, `cron`.
 
 ## Setup
@@ -33,7 +34,7 @@ Automated PR review using Claude Code, driven by a Linux cron job.
 
 1. Lists every non-archived repo in `ORG`.
 2. For each open PR, fetches the latest commit SHA.
-3. Skips the PR if `REPO#PR@SHA` is already in the reviewed file — this is the token-saver.
+3. Skips the PR if `REPO#PR@SHA` is already in the reviewed file, so the same commit is never reviewed twice.
 4. Otherwise pulls the diff (falling back to file-by-file patches if the diff is too large, capped at ~500 KB).
 5. Pipes a prompt to `claude -p -`. The verdict instructions are built from `APPROVAL_BIAS`.
 6. Posts the review as a PR comment via `gh pr review --comment` and records the SHA.
