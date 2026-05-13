@@ -1,9 +1,8 @@
 #!/bin/bash
-# Svarog PR Reviewer — runs via cron every 5 minutes (7am-2am Prague time)
+# PR Reviewer — runs via cron every 5 minutes (7am-2am Prague time)
 
-ORG="Svarog-tech"
-REVIEW_LOG="/tmp/svarog-pr-reviews.log"
-REVIEWED_FILE="/tmp/svarog-pr-reviewed.txt"
+REVIEW_LOG="/tmp/pr-reviews.log"
+REVIEWED_FILE="/tmp/pr-reviewed.txt"
 
 # Load config (APPROVAL_BIAS, etc). Falls back to defaults if missing.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -37,6 +36,11 @@ Rubberstamp by default. Trust the author." ;;
     *) echo "$(date) — ERROR: invalid APPROVAL_BIAS=$APPROVAL_BIAS (must be 1-5)" >> "$REVIEW_LOG"; exit 1 ;;
 esac
 
+if [ -z "$ORG" ]; then
+    echo "$(date) — ERROR: ORG is not set (configure it in config.sh)" >> "$REVIEW_LOG"
+    exit 1
+fi
+
 log() {
     echo "$(date) — $1" >> "$REVIEW_LOG"
 }
@@ -45,7 +49,7 @@ log() {
 touch "$REVIEWED_FILE"
 
 # Lock file to prevent overlapping runs
-LOCKFILE="/tmp/svarog-pr-review.lock"
+LOCKFILE="/tmp/pr-review.lock"
 if [ -f "$LOCKFILE" ]; then
     LOCK_PID=$(cat "$LOCKFILE" 2>/dev/null)
     if kill -0 "$LOCK_PID" 2>/dev/null; then
@@ -99,8 +103,8 @@ for REPO in $REPOS; do
         log "Reviewing $REPO#$PR_NUM: $PR_TITLE"
 
         # Try full diff first
-        DIFF=$(gh pr diff -R "$REPO" "$PR_NUM" 2>/tmp/svarog-pr-diff-err.txt)
-        DIFF_ERR=$(cat /tmp/svarog-pr-diff-err.txt)
+        DIFF=$(gh pr diff -R "$REPO" "$PR_NUM" 2>/tmp/pr-diff-err.txt)
+        DIFF_ERR=$(cat /tmp/pr-diff-err.txt)
 
         if [ -z "$DIFF" ] && [ -n "$DIFF_ERR" ]; then
             log "Full diff failed for $REPO#$PR_NUM: $DIFF_ERR"

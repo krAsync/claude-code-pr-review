@@ -1,4 +1,7 @@
-# Svarog PR Reviewer config — sourced by review_prs.sh
+# PR Reviewer config — sourced by review_prs.sh
+
+# GitHub organization (or user) to scan for open PRs. Required.
+ORG=""
 
 # How strongly the bot leans toward APPROVE vs REQUEST_CHANGES.
 # Scale: 1 (very strict) … 5 (very lenient)
