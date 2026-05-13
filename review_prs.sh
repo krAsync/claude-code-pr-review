@@ -179,14 +179,14 @@ $DIFF"
 
         # Post review as comment only — no approvals, no merges
         if echo "$REVIEW" | grep -qi "REQUEST_CHANGES"; then
-            VERDICT="⚠️ Issues found (comment only)"
+            VERDICT="Issues found (comment only)"
         else
-            VERDICT="✅ Looks good (comment only)"
+            VERDICT="Looks good (comment only)"
         fi
 
         GH_OUTPUT=$(gh pr review -R "$REPO" "$PR_NUM" --comment --body "$REVIEW
 
-🤖 Automated review by Claude" 2>&1)
+Automated review by Claude" 2>&1)
         GH_EXIT=$?
 
         if [ $GH_EXIT -ne 0 ]; then
